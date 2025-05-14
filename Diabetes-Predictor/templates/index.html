@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetes Prediction</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+        h2 {
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-secondary {
+            margin-top: 10px;
+        }
+        .prediction-alert {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Diabetes Risk Prediction</h2>
+        <form method="POST">
+            {% for col, details in feature_details.items() %}
+                <div class="form-group">
+                    <label>{{ details.title }}</label>
+
+                    {% if details.type == "binary" %}
+                        <select name="{{ col }}" class="form-control" required>
+                            <option value="0" {% if request.form.get(col, '0') == '0' %}selected{% endif %}>No</option>
+                            <option value="1" {% if request.form.get(col) == '1' %}selected{% endif %}>Yes</option>
+                        </select>
+                    
+                    {% elif details.type == "scale" %}
+                        <select name="{{ col }}" class="form-control" required>
+                            {% for key, value in details.options.items() %}
+                                <option value="{{ key }}" {% if request.form.get(col, key|string) == key|string %}selected{% endif %}>{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    
+                    {% elif details.type == "numeric" %}
+                        <input type="number" name="{{ col }}" class="form-control"
+                               {% if details.decimal %}step="0.1"{% else %}step="1"{% endif %}
+                               {% if details.min is not none %}min="{{ details.min }}"{% endif %}
+                               {% if details.max is not none %}max="{{ details.max }}"{% endif %}
+                               value="{{ request.form.get(col, '') }}"
+                               required>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-primary btn-block">Predict</button>
+            <button type="reset" class="btn btn-secondary btn-block">Reset Form</button>
+        </form>
+
+        {% if prediction %}
+            <div class="alert {% if 'High' in prediction %}alert-danger{% else %}alert-info{% endif %} prediction-alert text-center">
+                <strong>Result:</strong> {{ prediction }}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Optional Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+import os
+import pickle
+import joblib
+import numpy as np
+from flask import Flask, render_template, request
+
+app = Flask(__name__)
+
+def load_model():
+    try:
+        # Get the absolute path to the model file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(current_dir, 'Resources', 'diabetes_logi_regress_model.pkl.pkl')
+        
+        with open(model_path, 'rb') as file:
+            model = joblib.load(file)
+        
+        # Basic verification that this is a predictive model
+        if not hasattr(model, 'predict'):
+            raise ValueError("Loaded model doesn't have predict method")
+            
+        # Try to get feature names - if not available, use feature_details keys
+        if not hasattr(model, 'feature_names_in_'):
+            print("Warning: Model missing feature_names_in_, using feature_details keys")
+            model.feature_names_in_ = list(feature_details.keys())
+            
+        return model
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None
+
+# Load the model at startup
+model = load_model()
+
+# Feature details for UI
+feature_details = {
+    "HighBP": {
+        "title": "High Blood Pressure", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "HighChol": {
+        "title": "High Cholesterol", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "CholCheck": {
+        "title": "Cholesterol Check in Last 5 Years", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "BMI": {
+        "title": "Body Mass Index (BMI)", 
+        "type": "numeric", 
+        "decimal": True, 
+        "min": 10, 
+        "max": 50
+    },
+    "Smoker": {
+        "title": "Smoker (100+ cigarettes in life)", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "Stroke": {
+        "title": "History of Stroke", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "HeartDiseaseorAttack": {
+        "title": "Heart Disease or Attack", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "PhysActivity": {
+        "title": "Physical Activity in Last 30 Days", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "Fruits": {
+        "title": "Consume Fruits Daily", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "Veggies": {
+        "title": "Consume Vegetables Daily", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "HvyAlcoholConsump": {
+        "title": "Heavy Alcohol Consumption", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "AnyHealthcare": {
+        "title": "Have Healthcare Coverage", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "NoDocbcCost": {
+        "title": "Avoided Doctor Due to Cost", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "GenHlth": {
+        "title": "General Health", 
+        "type": "scale", 
+        "options": {
+            1: "Excellent", 
+            2: "Very Good", 
+            3: "Good", 
+            4: "Fair", 
+            5: "Poor"
+        }
+    },
+    "MentHlth": {
+        "title": "Poor Mental Health Days (Last 30)", 
+        "type": "numeric", 
+        "decimal": False, 
+        "min": 0, 
+        "max": 30
+    },
+    "PhysHlth": {
+        "title": "Poor Physical Health Days (Last 30)", 
+        "type": "numeric", 
+        "decimal": False, 
+        "min": 0, 
+        "max": 30
+    },
+    "DiffWalk": {
+        "title": "Difficulty Walking or Climbing Stairs", 
+        "type": "binary",
+        "options": {0: "No", 1: "Yes"}
+    },
+    "Sex": {
+        "title": "Sex", 
+        "type": "scale", 
+        "options": {
+            0: "Female", 
+            1: "Male", 
+            2: "Other"
+        }
+    },
+    "Age": {
+        "title": "Age Category", 
+        "type": "scale", 
+        "options": {
+            1: "18-24", 
+            2: "25-29", 
+            3: "30-34", 
+            4: "35-39", 
+            5: "40-44", 
+            6: "45-49", 
+            7: "50-54", 
+            8: "55-59", 
+            9: "60-64", 
+            10: "65-69", 
+            11: "70-74", 
+            12: "75-79", 
+            13: "80+"
+        }
+    },
+    "Education": {
+        "title": "Education Level", 
+        "type": "scale", 
+        "options": {
+            1: "No School", 
+            2: "Elementary", 
+            3: "Some High School", 
+            4: "High School Grad", 
+            5: "Some College", 
+            6: "College Graduate"
+        }
+    },
+    "Income": {
+        "title": "Income Level", 
+        "type": "scale", 
+        "options": {
+            1: "<$10K", 
+            2: "$10K-$15K", 
+            3: "$15K-$20K", 
+            4: "$20K-$25K", 
+            5: "$25K-$35K", 
+            6: "$35K-$50K", 
+            7: "$50K-$75K", 
+            8: "$75K+"
+        }
+    }
+}
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    prediction = None
+
+    if request.method == "POST":
+        try:
+            if model is None:
+                raise RuntimeError("Model not loaded. Cannot make predictions.")
+
+            # Collect input data in the correct order
+            input_data = []
+            for feature in model.feature_names_in_:
+                value = request.form.get(feature)
+                details = feature_details[feature]
+
+                if details["type"] in ["binary", "scale"]:
+                    input_data.append(int(value))
+                elif details["type"] == "numeric":
+                    input_data.append(float(value))
+
+            input_array = np.array(input_data).reshape(1, -1)
+            
+            # Flexible prediction handling
+            if hasattr(model, 'predict_proba'):
+                prediction_prob = model.predict_proba(input_array)[0][1]
+                risk_level = "High" if prediction_prob >= 0.5 else "Low"
+                prediction = f"{risk_level} Diabetes Risk: {prediction_prob * 100:.2f}%"
+            elif hasattr(model, 'predict'):
+                pred = model.predict(input_array)[0]
+                prediction = "High Diabetes Risk" if pred == 1 else "Low Diabetes Risk"
+            else:
+                raise RuntimeError("Model doesn't support prediction")
+
+        except Exception as e:
+            prediction = f"Error: {str(e)}"
+            print(f"Prediction error: {e}")  # Log the full error for debugging
+
+    return render_template("index.html", prediction=prediction, feature_details=feature_details)
+
+if __name__ == "__main__":
+    app.run(debug=True)  # Keep debug=True to see detailed errors during development
