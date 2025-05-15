@@ -38,7 +38,7 @@
 <body>
     <div class="container">
         <h2>Diabetes Risk Prediction</h2>
-        <form method="POST">
+        <form method="POST" id="diabetes-form">
             {% for col, details in feature_details.items() %}
                 <div class="form-group">
                     <label>{{ details.title }}</label>
@@ -48,14 +48,14 @@
                             <option value="0" {% if request.form.get(col, '0') == '0' %}selected{% endif %}>No</option>
                             <option value="1" {% if request.form.get(col) == '1' %}selected{% endif %}>Yes</option>
                         </select>
-                    
+
                     {% elif details.type == "scale" %}
                         <select name="{{ col }}" class="form-control" required>
                             {% for key, value in details.options.items() %}
                                 <option value="{{ key }}" {% if request.form.get(col, key|string) == key|string %}selected{% endif %}>{{ value }}</option>
                             {% endfor %}
                         </select>
-                    
+
                     {% elif details.type == "numeric" %}
                         <input type="number" name="{{ col }}" class="form-control"
                                {% if details.decimal %}step="0.1"{% else %}step="1"{% endif %}
@@ -68,7 +68,10 @@
             {% endfor %}
 
             <button type="submit" class="btn btn-primary btn-block">Predict</button>
-            <button type="reset" class="btn btn-secondary btn-block">Reset Form</button>
+            <button type='button' class='btn btn-secondary btn-block' onclick='window.location.href="{{ url_for("index") }}"'>Reset Form</button>
+
+
+
         </form>
 
         {% if prediction %}
@@ -78,9 +81,14 @@
         {% endif %}
     </div>
 
-    <!-- Optional Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <script>
+        function resetForm() {
+            document.getElementById("diabetes-form").reset();
+        }
+    </script>
 </body>
 </html>

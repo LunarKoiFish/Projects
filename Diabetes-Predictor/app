@@ -93,6 +93,8 @@ def index():
             prediction = f"Error: {str(e)}"
             print(f"Prediction error: {e}")
 
+        return render_template("index.html", feature_details=feature_details, prediction=prediction)
+
     return render_template("index.html", prediction=prediction, feature_details=feature_details)
 
 @app.route("/api/predict", methods=["POST"])
