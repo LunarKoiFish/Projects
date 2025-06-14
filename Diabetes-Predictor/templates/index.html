@@ -44,15 +44,16 @@
                     <label>{{ details.title }}</label>
 
                     {% if details.type == "binary" %}
-                        <select name="{{ col }}" class="form-control" required>
-                            <option value="0" {% if request.form.get(col, '0') == '0' %}selected{% endif %}>No</option>
-                            <option value="1" {% if request.form.get(col) == '1' %}selected{% endif %}>Yes</option>
+                        <select name="{{ col }}" required class="form-control">
+                            <option value="" {% if not request.form.get(col) %}selected{% endif %} disabled>Please select</option>
+                            <option value="0" {% if request.form.get(col) = '0' %}selected{% endif %}>No</option>
+                            <option value="1" {% if request.form.get(col) = '1' %}selected{% endif %}>Yes</option>
                         </select>
 
                     {% elif details.type == "scale" %}
                         <select name="{{ col }}" class="form-control" required>
                             {% for key, value in details.options.items() %}
-                                <option value="{{ key }}" {% if request.form.get(col, key|string) == key|string %}selected{% endif %}>{{ value }}</option>
+                                <option value="{{ key }}" {% if request.form.get(col, key|string) = key|string %}selected{% endif %}>{{ value }}</option>
                             {% endfor %}
                         </select>
 
@@ -62,7 +63,7 @@
                                {% if details.min is not none %}min="{{ details.min }}"{% endif %}
                                {% if details.max is not none %}max="{{ details.max }}"{% endif %}
                                value="{{ request.form.get(col, '') }}"
-                               required>
+                               placeholder="Please enter {{ details.title }}" required>
                     {% endif %}
                 </div>
             {% endfor %}
